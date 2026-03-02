@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Port Automation - Dashboard</title>
+<style>
+  :root {
+    --brand: #1a73e8;
+    --brand-dark: #1557b0;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1e2532;
+    --muted: #6b7280;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --error: #dc2626;
+    --error-bg: #fef2f2;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  .user-info { font-size: 13px; color: var(--muted); }
+  .logout-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .main { padding: 20px; max-width: 700px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .counter-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .counter-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--brand);
+    line-height: 1;
+  }
+  .counter-label { font-size: 14px; color: var(--muted); }
+  .area-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+  }
+  .area-btn {
+    padding: 16px 8px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 56px;
+    color: var(--text);
+  }
+  .area-btn:hover { border-color: var(--brand); color: var(--brand); background: #eff6ff; }
+  .area-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .area-btn.ordered { border-color: #86efac; background: #f0fdf4; color: var(--success); }
+  .result-card {
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .result-card.success { background: var(--success-bg); border: 1.5px solid #86efac; }
+  .result-card.error { background: var(--error-bg); border: 1.5px solid #fca5a5; }
+  .result-card.visible { display: block; }
+  .result-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .result-card h3.success-text { color: var(--success); }
+  .result-card h3.error-text { color: var(--error); }
+  .result-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .label { color: var(--muted); }
+  .result-row .value { font-weight: 600; }
+  .phone-big { font-size: 24px; font-weight: 800; color: var(--text); text-align: center; padding: 12px 0; letter-spacing: 1px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 10px; border-top: 1px solid var(--border); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.completed { background: #dcfce7; color: #166534; }
+  .badge.pending { background: #fef9c3; color: #854d0e; }
+  .badge.processing { background: #dbeafe; color: #1e40af; }
+  .badge.failed { background: #fee2e2; color: #991b1b; }
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 14px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-header h2 { font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Port Automation</h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="user-info" id="userInfo"></span>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="main">
+  <div id="loadingState" class="loading"><span class="spinner"></span>Loading...</div>
+  <div id="mainContent" style="display:none;">
+
+    <!-- Today's counter -->
+    <div class="card">
+      <div class="counter-block">
+        <div class="counter-num" id="todayCount">0</div>
+        <div>
+          <div style="font-weight:700;font-size:15px;">Today's Orders</div>
+          <div class="counter-label" id="todayDate"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result card (shown after ordering) -->
+    <div class="result-card" id="resultCard">
+      <h3 id="resultTitle"></h3>
+      <div class="phone-big" id="resultPhone" style="display:none;"></div>
+      <div id="resultDetails"></div>
+    </div>
+
+    <!-- Area code picker -->
+    <div class="card">
+      <h2>Select Area Code</h2>
+      <div class="area-grid" id="areaGrid">
+        <div class="loading"><span class="spinner"></span></div>
+      </div>
+    </div>
+
+    <!-- Today's orders table -->
+    <div class="card">
+      <div class="section-header">
+        <h2>Today's Orders</h2>
+      </div>
+      <div id="todayOrdersTable"><div class="empty">No orders today yet.</div></div>
+    </div>
+
+    <!-- Recent orders -->
+    <div class="card">
+      <div class="section-header">
+        <h2>Recent Orders</h2>
+      </div>
+      <div id="recentOrdersTable"><div class="empty">No recent orders.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var appData = null;
+var orderingInProgress = false;
+
+async function loadDashboard() {
+  try {
+    var res = await fetch('/api/dashboard', { credentials: 'include' });
+    if (res.status === 401) { window.location.href = '/'; return; }
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to load');
+    appData = data;
+    renderDashboard(data);
+  } catch (err) {
+    document.getElementById('loadingState').innerHTML = '<span style="color:#dc2626;">Failed to load: ' + err.message + '</span>';
+  }
+}
+
+function renderDashboard(data) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  var u = data.user;
+  document.getElementById('userInfo').textContent = u.display_name + (u.store_name ? ' - ' + u.store_name : '');
+  document.getElementById('todayCount').textContent = data.todayOrders.length;
+  document.getElementById('todayDate').textContent = data.today;
+
+  renderAreaGrid(data.config.allowedAreaCodes, data.todayOrders);
+  renderOrdersTable('todayOrdersTable', data.todayOrders);
+  renderOrdersTable('recentOrdersTable', data.recentOrders);
+}
+
+function renderAreaGrid(areaCodes, todayOrders) {
+  var grid = document.getElementById('areaGrid');
+  if (!areaCodes || areaCodes.length === 0) {
+    grid.innerHTML = '<div class="empty">No area codes configured. Contact admin.</div>';
+    return;
+  }
+
+  var orderedCodes = {};
+  todayOrders.forEach(function(o) { orderedCodes[o.area_code] = true; });
+
+  grid.innerHTML = '';
+  areaCodes.forEach(function(ac) {
+    var btn = document.createElement('button');
+    btn.className = 'area-btn' + (orderedCodes[ac] ? ' ordered' : '');
+    btn.textContent = ac;
+    btn.onclick = function() { doOrder(ac, btn); };
+    if (orderingInProgress) btn.disabled = true;
+    grid.appendChild(btn);
+  });
+}
+
+async function doOrder(areaCode, btnEl) {
+  if (orderingInProgress) return;
+  orderingInProgress = true;
+  disableAllButtons();
+
+  var originalText = btnEl.textContent;
+  btnEl.textContent = '...';
+
+  hideResult();
+
+  try {
+    var res = await fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ area_code: areaCode })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      showResult('error', 'Order Failed', null, null, data.error || 'Unknown error');
+    } else {
+      var o = data.order;
+      showResult('success', 'Order Complete - ' + areaCode, o.phone_number, o);
+      // Refresh dashboard data
+      await loadDashboard();
+    }
+  } catch (err) {
+    showResult('error', 'Network Error', null, null, err.message);
+  } finally {
+    orderingInProgress = false;
+    enableAllButtons();
+    btnEl.textContent = originalText;
+  }
+}
+
+function showResult(type, title, phone, order, errorMsg) {
+  var card = document.getElementById('resultCard');
+  var titleEl = document.getElementById('resultTitle');
+  var phoneEl = document.getElementById('resultPhone');
+  var detailsEl = document.getElementById('resultDetails');
+
+  card.className = 'result-card visible ' + type;
+  titleEl.className = type + '-text';
+  titleEl.textContent = title;
+
+  if (phone) {
+    phoneEl.textContent = formatPhone(phone);
+    phoneEl.style.display = 'block';
+  } else {
+    phoneEl.style.display = 'none';
+  }
+
+  if (order) {
+    var rows = [
+      ['Area Code', order.area_code],
+      ['NP Order ID', order.np_order_id || 'N/A'],
+      ['Account ID', order.account_id || 'N/A'],
+      ['PIN', order.pin || 'N/A'],
+      ['Cost', order.cost ? '$' + order.cost : 'N/A'],
+      ['Ordered At', order.requested_at_fmt || '']
+    ];
+    detailsEl.innerHTML = rows.map(function(r) {
+      return '<div class="result-row"><span class="label">' + r[0] + '</span><span class="value">' + r[1] + '</span></div>';
+    }).join('');
+  } else if (errorMsg) {
+    detailsEl.innerHTML = '<div style="color:#dc2626;font-size:14px;">' + errorMsg + '</div>';
+  } else {
+    detailsEl.innerHTML = '';
+  }
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideResult() {
+  var card = document.getElementById('resultCard');
+  card.className = 'result-card';
+}
+
+function renderOrdersTable(containerId, orders) {
+  var el = document.getElementById(containerId);
+  if (!orders || orders.length === 0) {
+    el.innerHTML = '<div class="empty">No orders found.</div>';
+    return;
+  }
+
+  var html = '<table><thead><tr><th>Area Code</th><th>Phone Number</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+  orders.forEach(function(o) {
+    html += '<tr>';
+    html += '<td><strong>' + o.area_code + '</strong></td>';
+    html += '<td>' + (o.phone_number ? formatPhone(o.phone_number) : '-') + '</td>';
+    html += '<td><span class="badge ' + o.status + '">' + o.status + '</span></td>';
+    html += '<td style="color:var(--muted);font-size:13px;">' + (o.requested_at_fmt || '') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function formatPhone(num) {
+  var d = String(num).replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '1') d = d.slice(1);
+  if (d.length === 10) return '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6);
+  return num;
+}
+
+function disableAllButtons() {
+  document.querySelectorAll('.area-btn').forEach(function(b) { b.disabled = true; });
+}
+
+function enableAllButtons() {
+  document.querySelectorAll('.area-btn').forEach(function(b) { b.disabled = false; });
+}
+
+async function doLogout() {
+  await fetch('/api/login', { method: 'DELETE', credentials: 'include' });
+  window.location.href = '/';
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

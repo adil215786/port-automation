@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Port Automation - Admin</title>
+<style>
+  :root {
+    --brand: #1a73e8;
+    --brand-dark: #1557b0;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1e2532;
+    --muted: #6b7280;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --error: #dc2626;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: 700; }
+  .logout-btn { background: none; border: 1.5px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .main { padding: 20px; max-width: 900px; margin: 0 auto; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); padding: 6px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .tab { flex: 1; padding: 10px; border: none; background: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .tab.active { background: var(--brand); color: #fff; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  input, select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 15px; background: #fff; margin-bottom: 14px; }
+  input:focus, select:focus { outline: none; border-color: var(--brand); }
+  .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; min-height: 44px; }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-dark); }
+  .btn-secondary { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+  .btn-danger { background: #fef2f2; border: 1.5px solid #fca5a5; color: var(--error); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+  td { padding: 10px; border-top: 1px solid var(--border); vertical-align: middle; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .badge.completed { background: #dcfce7; color: #166534; }
+  .badge.pending { background: #fef9c3; color: #854d0e; }
+  .badge.processing { background: #dbeafe; color: #1e40af; }
+  .badge.failed { background: #fee2e2; color: #991b1b; }
+  .badge.admin { background: #f3e8ff; color: #6b21a8; }
+  .badge.active { background: #dcfce7; color: #166534; }
+  .badge.inactive { background: #f1f5f9; color: var(--muted); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e2532; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-row { display: flex; gap: 10px; align-items: flex-end; }
+  .form-row .btn { margin-bottom: 14px; white-space: nowrap; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: var(--radius); padding: 28px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 14px; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } .tabs { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Port Automation - Admin</h1>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <a href="/dashboard" style="font-size:13px;color:var(--brand);text-decoration:none;">Dashboard</a>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="main">
+  <div id="loadingState" class="loading"><span class="spinner"></span>Loading...</div>
+  <div id="mainContent" style="display:none;">
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('config')">Config</button>
+      <button class="tab" onclick="switchTab('users')">Users</button>
+      <button class="tab" onclick="switchTab('orders')">Orders</button>
+      <button class="tab" onclick="switchTab('system')">System</button>
+    </div>
+
+    <!-- CONFIG TAB -->
+    <div class="panel active" id="panel-config">
+      <div class="card">
+        <h2>Settings</h2>
+        <label>Product Type</label>
+        <select id="cfg_product_type">
+          <option value="METRO_CUSTOM_NUMBER">Metro ($12)</option>
+          <option value="BOOST_CUSTOM_NUMBER">Boost ($12)</option>
+          <option value="TM_CUSTOM_NUMBER">T-Mobile ($12)</option>
+          <option value="VZ_CUSTOM_NUMBER">Verizon ($15)</option>
+          <option value="ATT_CUSTOM_NUMBER">AT&T ($14)</option>
+        </select>
+        <label>Allowed Area Codes (comma separated)</label>
+        <input type="text" id="cfg_area_codes" placeholder="e.g. 215, 267, 732, 856">
+        <button class="btn btn-primary" onclick="saveConfig()">Save Settings</button>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div class="panel" id="panel-users">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin:0;">Users</h2>
+          <button class="btn btn-primary" onclick="openCreateUser()">+ Add User</button>
+        </div>
+        <div id="usersTable"></div>
+      </div>
+    </div>
+
+    <!-- ORDERS TAB -->
+    <div class="panel" id="panel-orders">
+      <div class="card">
+        <h2>All Orders</h2>
+        <div id="ordersTable"></div>
+      </div>
+    </div>
+
+    <!-- SYSTEM TAB -->
+    <div class="panel" id="panel-system">
+      <div class="card">
+        <h2>System Tools</h2>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px;">Manage the NumberPilot API token and system utilities.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="doRefreshToken()">Refresh NP Token</button>
+          <button class="btn btn-secondary" onclick="doSyncOrders()">Sync Orders from NP</button>
+        </div>
+        <div id="systemResult" style="margin-top:16px;font-size:14px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h2 id="modalTitle">Add User</h2>
+    <input type="hidden" id="modal_user_id">
+    <label>Username</label>
+    <input type="text" id="modal_username" placeholder="Lowercase, no spaces" autocapitalize="none">
+    <label>PIN</label>
+    <input type="tel" id="modal_pin" placeholder="Leave blank to keep current">
+    <div class="grid2">
+      <div>
+        <label>Display Name</label>
+        <input type="text" id="modal_display_name" placeholder="Full name">
+      </div>
+      <div>
+        <label>Store Name</label>
+        <input type="text" id="modal_store_name" placeholder="Store ID or name">
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+        <input type="checkbox" id="modal_is_admin"> Admin
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+        <input type="checkbox" id="modal_is_active" checked> Active
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="deleteUserBtn" onclick="confirmDeleteUser()" style="display:none;">Deactivate</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var appData = null;
+
+async function loadAdmin() {
+  try {
+    var res = await fetch('/api/admin', { credentials: 'include' });
+    if (res.status === 401 || res.status === 403) { window.location.href = '/'; return; }
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Load failed');
+    appData = data;
+    renderAll(data);
+  } catch (err) {
+    document.getElementById('loadingState').innerHTML = '<span style="color:#dc2626;">Failed to load: ' + err.message + '</span>';
+  }
+}
+
+function renderAll(data) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  // Config
+  document.getElementById('cfg_product_type').value = data.config.product_type || 'METRO_CUSTOM_NUMBER';
+  document.getElementById('cfg_area_codes').value = data.config.allowed_area_codes || '';
+
+  renderUsers(data.users);
+  renderOrders(data.orders);
+}
+
+function renderUsers(users) {
+  var el = document.getElementById('usersTable');
+  if (!users || users.length === 0) { el.innerHTML = '<div class="empty">No users.</div>'; return; }
+  var html = '<table><thead><tr><th>Username</th><th>Display Name</th><th>Store</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>';
+  users.forEach(function(u) {
+    html += '<tr>';
+    html += '<td><strong>' + u.username + '</strong></td>';
+    html += '<td>' + (u.display_name || '') + '</td>';
+    html += '<td>' + (u.store_name || '') + '</td>';
+    html += '<td>' + (u.is_admin ? '<span class="badge admin">Admin</span>' : 'User') + '</td>';
+    html += '<td><span class="badge ' + (u.is_active ? 'active' : 'inactive') + '">' + (u.is_active ? 'Active' : 'Inactive') + '</span></td>';
+    html += '<td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="openEditUser(' + JSON.stringify(u).replace(/"/g,'&quot;') + ')">Edit</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderOrders(orders) {
+  var el = document.getElementById('ordersTable');
+  if (!orders || orders.length === 0) { el.innerHTML = '<div class="empty">No orders.</div>'; return; }
+  var html = '<table><thead><tr><th>User</th><th>Store</th><th>Area</th><th>Phone</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+  orders.forEach(function(o) {
+    html += '<tr>';
+    html += '<td>' + o.username + '</td>';
+    html += '<td>' + (o.store_name || '') + '</td>';
+    html += '<td><strong>' + o.area_code + '</strong></td>';
+    html += '<td>' + (o.phone_number ? formatPhone(o.phone_number) : '-') + '</td>';
+    html += '<td><span class="badge ' + o.status + '">' + o.status + '</span></td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + (o.requested_at_fmt || '') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+async function saveConfig() {
+  var productType = document.getElementById('cfg_product_type').value;
+  var areaCodes = document.getElementById('cfg_area_codes').value.trim();
+
+  var res = await fetch('/api/admin?action=update_config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ product_type: productType, allowed_area_codes: areaCodes })
+  });
+  var data = await res.json();
+  if (data.ok) showToast('Settings saved!');
+  else showToast('Error: ' + data.error, true);
+}
+
+function openCreateUser() {
+  document.getElementById('modalTitle').textContent = 'Add User';
+  document.getElementById('modal_user_id').value = '';
+  document.getElementById('modal_username').value = '';
+  document.getElementById('modal_pin').value = '';
+  document.getElementById('modal_display_name').value = '';
+  document.getElementById('modal_store_name').value = '';
+  document.getElementById('modal_is_admin').checked = false;
+  document.getElementById('modal_is_active').checked = true;
+  document.getElementById('modal_username').disabled = false;
+  document.getElementById('deleteUserBtn').style.display = 'none';
+  document.getElementById('userModal').classList.add('open');
+}
+
+function openEditUser(user) {
+  document.getElementById('modalTitle').textContent = 'Edit User';
+  document.getElementById('modal_user_id').value = user.user_id;
+  document.getElementById('modal_username').value = user.username;
+  document.getElementById('modal_pin').value = '';
+  document.getElementById('modal_display_name').value = user.display_name || '';
+  document.getElementById('modal_store_name').value = user.store_name || '';
+  document.getElementById('modal_is_admin').checked = !!user.is_admin;
+  document.getElementById('modal_is_active').checked = !!user.is_active;
+  document.getElementById('modal_username').disabled = true;
+  document.getElementById('deleteUserBtn').style.display = 'inline-block';
+  document.getElementById('userModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('userModal').classList.remove('open');
+}
+
+async function saveUser() {
+  var userId = document.getElementById('modal_user_id').value;
+  var isEdit = !!userId;
+
+  var body = {
+    username: document.getElementById('modal_username').value.trim().toLowerCase(),
+    pin: document.getElementById('modal_pin').value.trim(),
+    display_name: document.getElementById('modal_display_name').value.trim(),
+    store_name: document.getElementById('modal_store_name').value.trim(),
+    is_admin: document.getElementById('modal_is_admin').checked,
+    is_active: document.getElementById('modal_is_active').checked
+  };
+
+  if (isEdit) {
+    body.user_id = userId;
+    if (!body.pin) delete body.pin;
+  } else {
+    if (!body.username || !body.pin) { showToast('Username and PIN required', true); return; }
+  }
+
+  var action = isEdit ? 'update_user' : 'create_user';
+  var res = await fetch('/api/admin?action=' + action, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body)
+  });
+  var data = await res.json();
+
+  if (data.ok) {
+    showToast(isEdit ? 'User updated!' : 'User created!');
+    closeModal();
+    loadAdmin();
+  } else {
+    showToast('Error: ' + data.error, true);
+  }
+}
+
+async function confirmDeleteUser() {
+  var userId = document.getElementById('modal_user_id').value;
+  if (!userId) return;
+  if (!confirm('Deactivate this user?')) return;
+
+  var res = await fetch('/api/admin?action=delete_user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ user_id: userId })
+  });
+  var data = await res.json();
+  if (data.ok) { showToast('User deactivated'); closeModal(); loadAdmin(); }
+  else showToast('Error: ' + data.error, true);
+}
+
+async function doRefreshToken() {
+  var el = document.getElementById('systemResult');
+  el.textContent = 'Refreshing...';
+  var res = await fetch('/api/admin?action=refresh_token', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  var data = await res.json();
+  el.textContent = data.ok ? 'Token refreshed successfully.' : 'Error: ' + data.error;
+  el.style.color = data.ok ? 'var(--success)' : 'var(--error)';
+}
+
+async function doSyncOrders() {
+  var el = document.getElementById('systemResult');
+  el.textContent = 'Syncing...';
+  var res = await fetch('/api/admin?action=sync_orders', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  var data = await res.json();
+  el.textContent = data.ok ? 'Synced ' + data.count + ' orders from NumberPilot.' : 'Error: ' + data.error;
+  el.style.color = data.ok ? 'var(--success)' : 'var(--error)';
+}
+
+function formatPhone(num) {
+  var d = String(num).replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '1') d = d.slice(1);
+  if (d.length === 10) return '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6);
+  return num;
+}
+
+function showToast(msg, isError) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#dc2626' : '#1e2532';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+async function doLogout() {
+  await fetch('/api/login', { method: 'DELETE', credentials: 'include' });
+  window.location.href = '/';
+}
+
+loadAdmin();
+</script>
+</body>
+</html>
